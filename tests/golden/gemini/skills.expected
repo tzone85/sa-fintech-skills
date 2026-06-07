@@ -1,0 +1,11 @@
+{
+  "name": "sa-fintech-skills",
+  "version": "0.0.0",
+  "skills": [
+    {
+      "name": "popia",
+      "description": "Audit SA code for POPIA compliance — PII handling, consent flags, data residency, and DSAR endpoint requirements.",
+      "body": "skills/popia.md"
+    }
+  ]
+}
