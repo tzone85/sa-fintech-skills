@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseSkill } from '../../scripts/lib/parse-skill.ts';
+import { describe, it, expect } from "vitest";
+import { parseSkill } from "../../scripts/lib/parse-skill.ts";
 
 const validSource = `---
 name: popia
@@ -27,28 +27,65 @@ See \`examples/consent-flag.ts\`.
 Storing ID numbers without consent flag.
 `;
 
-describe('parseSkill', () => {
-  it('parses frontmatter and body sections', () => {
+describe("parseSkill", () => {
+  it("parses frontmatter and body sections", () => {
     const parsed = parseSkill(validSource);
-    expect(parsed.frontmatter.name).toBe('popia');
-    expect(parsed.frontmatter.description).toBe('Audit SA code for POPIA compliance');
-    expect(parsed.frontmatter.metadata.targets).toEqual(['claude', 'cursor']);
+    expect(parsed.frontmatter.name).toBe("popia");
+    expect(parsed.frontmatter.description).toBe(
+      "Audit SA code for POPIA compliance",
+    );
+    expect(parsed.frontmatter.metadata.targets).toEqual(["claude", "cursor"]);
     expect(parsed.sections.triggers).toContain('"popia"');
-    expect(parsed.sections.examples).toContain('consent-flag.ts');
-    expect(parsed.sections.commonMistakes).toContain('ID numbers');
-    expect(parsed.body).toContain('# POPIA');
+    expect(parsed.sections.triggers).toContain('"PII"');
+    expect(parsed.sections.triggers).toContain('"consent"');
+    expect(parsed.sections.examples).toContain("consent-flag.ts");
+    expect(parsed.sections.commonMistakes).toContain("ID numbers");
+    expect(parsed.body).toContain("# POPIA");
   });
 
-  it('throws on missing frontmatter', () => {
-    expect(() => parseSkill('# just a body\n')).toThrow(/frontmatter/i);
+  it("captures multi-line section content in full", () => {
+    const src = `---
+name: x
+description: y
+metadata: { targets: [claude] }
+---
+
+# x
+
+## Triggers
+
+- one
+- two
+- three
+
+## Examples
+
+line A
+line B
+
+## Common mistakes
+
+last line
+`;
+    const parsed = parseSkill(src);
+    expect(parsed.sections.triggers).toContain("- one");
+    expect(parsed.sections.triggers).toContain("- two");
+    expect(parsed.sections.triggers).toContain("- three");
+    expect(parsed.sections.examples).toContain("line A");
+    expect(parsed.sections.examples).toContain("line B");
+    expect(parsed.sections.commonMistakes).toContain("last line");
   });
 
-  it('throws on missing required name', () => {
+  it("throws on missing frontmatter", () => {
+    expect(() => parseSkill("# just a body\n")).toThrow(/frontmatter/i);
+  });
+
+  it("throws on missing required name", () => {
     const src = `---\ndescription: x\n---\n# body\n`;
     expect(() => parseSkill(src)).toThrow(/name/);
   });
 
-  it('returns null section when H2 missing', () => {
+  it("returns null section when H2 missing", () => {
     const src = `---\nname: x\ndescription: y\nmetadata: { targets: [claude] }\n---\n# x\n\n## Triggers\n- a\n`;
     const parsed = parseSkill(src);
     expect(parsed.sections.triggers).toBeTruthy();
