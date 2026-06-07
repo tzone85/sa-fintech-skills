@@ -1,0 +1,70 @@
+---
+description: SARS tax workflows for South African builds — VAT 15% (effective 2018) calculations, IRP5/IT3(a) source codes, and ITR12 field references with citations to the SARS-published guides.
+globs: ["**/*.ts","**/*.tsx","**/*.py","**/*.js"]
+alwaysApply: false
+# sa-fintech-skills@0.0.0
+---
+
+# SARS eFiling — tax workflows for SA builds
+
+Use when the user is writing code that calculates VAT, generates payslips / IRP5 / IT3(a) certificates, or maps user input to ITR12 form fields. SARS has no public sandbox for eFiling submission, so this skill is reference-backed: every claim links to a SARS-published guide URL pinned in the frontmatter.
+
+## Triggers
+
+- "sars"
+- "efiling"
+- "vat calc"
+- "vat rate"
+- "irp5"
+- "it3(a)"
+- "itr12"
+- "tax certificate"
+- "source code"
+- "paye"
+
+## Examples
+
+- [`examples/vat-calc.ts`](./examples/vat-calc.ts) — delegate to the shared 15% VAT primitive
+- [`examples/irp5-codes.ts`](./examples/irp5-codes.ts) — typed registry of the most common Normal Income / Allowance / Fringe Benefit codes with descriptions
+- [`examples/itr12-fields.ts`](./examples/itr12-fields.ts) — minimal ITR12 field map for income + deductions sections
+- [`examples/anti-pattern.ts`](./examples/anti-pattern.ts) — historic / wrong patterns flagged with the correct replacement
+
+## Canonical rules
+
+### VAT
+- Standard rate is **15%** since 2018-04-01. Proposed increases to 15.5% (1 May 2025) and 16% (1 April 2026) were **reversed** by clause 13 of the 2025 Rates Bill — the rate remains 15%. Source: `sars.gov.za/types-of-tax/value-added-tax/`.
+- Compulsory registration threshold rises from R1m to **R2.3m** (effective 1 April 2026). Voluntary threshold rises from R50k to **R120k**.
+- Zero-rated supplies are subject to VAT at 0% (still report). Exempt supplies are outside the VAT system entirely. Don't conflate them.
+- Inclusive ↔ exclusive conversions in `shared/za-primitives/vat.ts` use banker's rounding to 2 decimal places — matches SARS guidance for tax fractions.
+
+### IRP5 / IT3(a) source codes
+- Code triples: a **Main Code** is the local (SA-source) value (`36xx`); the corresponding **51xx** offset is the same income type from a foreign source (e.g. 3601 → 3651). Codes ending in `99` are reserved.
+- Categories:
+  - **Normal Income** — 3601..3623 / 3651..3673
+  - **Allowances** — 3701..3724 / 3751..3774
+  - **Fringe Benefits** — 3801..3825 / 3851..3875
+  - **Lump Sum** — 39xx
+  - **Deductions** — 4xxx
+- "Sub-code rationalisation" rules — older codes have been folded into newer main codes (e.g. 3603/3610 must be reported under 3601 from 2013 onwards). Always cross-check the year of assessment against the SARS guide for the current rationalisation rules.
+
+### ITR12
+- The ITR12 is the personal income tax return form. Code matches the IRP5 source codes for income; the form itself is rendered from a schema published by SARS.
+- For programmatic eFiling submission, SARS provides the e@syFile and HTTPS upload endpoints — there is no public REST sandbox. Most builds therefore generate the PDF or the e@syFile CSV input and submit manually.
+
+## Common mistakes
+
+- **Calling VAT 14% in 2026** — rate changed to 15% on 2018-04-01 and has not changed since (the proposed 2025/2026 increases were reversed).
+- **Using a Personal Income IRP5 code on a corporate payslip** — IRP5 source codes are for Employees' Income Tax certificates. Corporate income uses different categories on the ITR14 (corporate return).
+- **Treating zero-rated and exempt as the same** — zero-rated supplies still appear on the VAT201 return at 0%; exempt supplies do not. Misclassifying changes the input-tax claim.
+- **Generating IT3(a) certificates without the section-1 declaration block** — SARS rejects on intake.
+- **Hardcoding the registration thresholds** — they change every few budget cycles. Read them from configuration tied to the year of assessment.
+- **Reporting code 3603 / 3610 on a 2026 certificate** — these have been rationalised into 3601 from 2013 onwards.
+
+## Configuration
+
+No secret material — SARS published guides are public. The IRP5 code registry in `examples/irp5-codes.ts` carries an `effectiveFrom` field per entry so consumers can pick the right code for the year of assessment they are working with.
+
+## See also
+
+- [`shared/za-primitives/vat.ts`](../../shared/za-primitives/vat.ts) — the 15% VAT primitive this skill delegates to.
+- [`skills/popia/SKILL.md`](../popia/SKILL.md) — SARS source codes can be combined with employee identifiers; the same POPIA storage / consent rules apply.

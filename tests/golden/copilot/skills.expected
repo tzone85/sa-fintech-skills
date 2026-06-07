@@ -3,6 +3,74 @@
 
 When the user is writing code that touches South African payment APIs (Paystack, PayFast), POPIA personal information, or SARS tax workflows, apply the skill below whose triggers best match.
 
+## sars-efiling
+
+> SARS tax workflows for South African builds — VAT 15% (effective 2018) calculations, IRP5/IT3(a) source codes, and ITR12 field references with citations to the SARS-published guides.
+
+# SARS eFiling — tax workflows for SA builds
+
+Use when the user is writing code that calculates VAT, generates payslips / IRP5 / IT3(a) certificates, or maps user input to ITR12 form fields. SARS has no public sandbox for eFiling submission, so this skill is reference-backed: every claim links to a SARS-published guide URL pinned in the frontmatter.
+
+## Triggers
+
+- "sars"
+- "efiling"
+- "vat calc"
+- "vat rate"
+- "irp5"
+- "it3(a)"
+- "itr12"
+- "tax certificate"
+- "source code"
+- "paye"
+
+## Examples
+
+- [`examples/vat-calc.ts`](./examples/vat-calc.ts) — delegate to the shared 15% VAT primitive
+- [`examples/irp5-codes.ts`](./examples/irp5-codes.ts) — typed registry of the most common Normal Income / Allowance / Fringe Benefit codes with descriptions
+- [`examples/itr12-fields.ts`](./examples/itr12-fields.ts) — minimal ITR12 field map for income + deductions sections
+- [`examples/anti-pattern.ts`](./examples/anti-pattern.ts) — historic / wrong patterns flagged with the correct replacement
+
+## Canonical rules
+
+### VAT
+- Standard rate is **15%** since 2018-04-01. Proposed increases to 15.5% (1 May 2025) and 16% (1 April 2026) were **reversed** by clause 13 of the 2025 Rates Bill — the rate remains 15%. Source: `sars.gov.za/types-of-tax/value-added-tax/`.
+- Compulsory registration threshold rises from R1m to **R2.3m** (effective 1 April 2026). Voluntary threshold rises from R50k to **R120k**.
+- Zero-rated supplies are subject to VAT at 0% (still report). Exempt supplies are outside the VAT system entirely. Don't conflate them.
+- Inclusive ↔ exclusive conversions in `shared/za-primitives/vat.ts` use banker's rounding to 2 decimal places — matches SARS guidance for tax fractions.
+
+### IRP5 / IT3(a) source codes
+- Code triples: a **Main Code** is the local (SA-source) value (`36xx`); the corresponding **51xx** offset is the same income type from a foreign source (e.g. 3601 → 3651). Codes ending in `99` are reserved.
+- Categories:
+  - **Normal Income** — 3601..3623 / 3651..3673
+  - **Allowances** — 3701..3724 / 3751..3774
+  - **Fringe Benefits** — 3801..3825 / 3851..3875
+  - **Lump Sum** — 39xx
+  - **Deductions** — 4xxx
+- "Sub-code rationalisation" rules — older codes have been folded into newer main codes (e.g. 3603/3610 must be reported under 3601 from 2013 onwards). Always cross-check the year of assessment against the SARS guide for the current rationalisation rules.
+
+### ITR12
+- The ITR12 is the personal income tax return form. Code matches the IRP5 source codes for income; the form itself is rendered from a schema published by SARS.
+- For programmatic eFiling submission, SARS provides the e@syFile and HTTPS upload endpoints — there is no public REST sandbox. Most builds therefore generate the PDF or the e@syFile CSV input and submit manually.
+
+## Common mistakes
+
+- **Calling VAT 14% in 2026** — rate changed to 15% on 2018-04-01 and has not changed since (the proposed 2025/2026 increases were reversed).
+- **Using a Personal Income IRP5 code on a corporate payslip** — IRP5 source codes are for Employees' Income Tax certificates. Corporate income uses different categories on the ITR14 (corporate return).
+- **Treating zero-rated and exempt as the same** — zero-rated supplies still appear on the VAT201 return at 0%; exempt supplies do not. Misclassifying changes the input-tax claim.
+- **Generating IT3(a) certificates without the section-1 declaration block** — SARS rejects on intake.
+- **Hardcoding the registration thresholds** — they change every few budget cycles. Read them from configuration tied to the year of assessment.
+- **Reporting code 3603 / 3610 on a 2026 certificate** — these have been rationalised into 3601 from 2013 onwards.
+
+## Configuration
+
+No secret material — SARS published guides are public. The IRP5 code registry in `examples/irp5-codes.ts` carries an `effectiveFrom` field per entry so consumers can pick the right code for the year of assessment they are working with.
+
+## See also
+
+- [`shared/za-primitives/vat.ts`](../../shared/za-primitives/vat.ts) — the 15% VAT primitive this skill delegates to.
+- [`skills/popia/SKILL.md`](../popia/SKILL.md) — SARS source codes can be combined with employee identifiers; the same POPIA storage / consent rules apply.
+
 ## popia
 
 > Audit SA code for POPIA compliance — PII handling, consent flags, data residency, and DSAR endpoint requirements.
@@ -34,4 +102,159 @@ Wrong example with explanation: [`examples/anti-pattern.ts`](./examples/anti-pat
 - Logging PII into shared observability platforms (Datadog, Sentry) without scrubbing. Logs are processing under POPIA.
 - Using US-region storage for SA customer data without a §72 transborder safeguard. Default to ZA regions where available.
 - Building a DSAR endpoint that only returns a subset (e.g. profile but not transaction history). The data subject is entitled to *all* personal information.
+
+## paystack
+
+> Integrate Paystack for SA merchants — initialise ZAR transactions, verify HMAC-SHA-512 webhooks, and route split payments without the gotchas that break production.
+
+# Paystack — South African payment integration
+
+Use when the user is wiring a backend to Paystack for **South African card payments**. Paystack supports ZAR for SA merchants alongside NGN, GHS, KES, XOF, and EGP. Common operations: initialise a transaction, verify webhooks, verify a transaction reference, route money via split payments.
+
+## Triggers
+
+- "paystack"
+- "init transaction"
+- "verify webhook"
+- "x-paystack-signature"
+- "split payment"
+- "subaccount"
+- "transaction reference"
+- "ZAR payment"
+
+## Examples
+
+- [`examples/init-transaction.ts`](./examples/init-transaction.ts) — server-side initialise with explicit ZAR + amount in cents
+- [`examples/verify-webhook.ts`](./examples/verify-webhook.ts) — Express handler with HMAC-SHA-512 signature verify using `crypto.timingSafeEqual`
+- [`examples/anti-pattern.ts`](./examples/anti-pattern.ts) — common wrong patterns with explanations
+- [`fixtures/webhook-valid.json`](./fixtures/webhook-valid.json) and [`fixtures/webhook-invalid-sig.json`](./fixtures/webhook-invalid-sig.json) — signed payloads keyed by the test secret `sk_test_paystack_skill_fixture_secret_2026`
+
+## Canonical rules
+
+**Initialise transaction (POST `/transaction/initialize`):**
+- Amount must be in the **subunit** of the currency. For ZAR that means **cents** — multiply rand by 100. R150.00 = 15000.
+- Set `currency: "ZAR"` explicitly. Paystack defaults to the integration's primary currency, which for some accounts is NGN.
+- Returns `data.authorization_url` — redirect the customer to that URL. Returning `status: "success"` from initialize means *initialisation* succeeded, NOT that the customer paid.
+
+**Verify transaction (GET `/transaction/verify/:reference`):**
+- The only safe source of truth for whether a customer actually paid.
+- Check `data.status === "success"` AND `data.amount === expectedAmountInCents` AND `data.currency === "ZAR"` before fulfilling.
+
+**Webhook signature verify:**
+- Paystack sends events with header `x-paystack-signature`.
+- Signature is `HMAC-SHA-512` over the request body, signed with your **secret key** (`sk_live_...` or `sk_test_...`).
+- Use `crypto.timingSafeEqual` to compare — never `===` (timing attack).
+- Use the **raw request body** if at all possible. If using `express.json()`, the body is already parsed and you must `JSON.stringify(req.body)` to recreate the bytes Paystack signed; this works in practice but is fragile if either side changes serialisation. Prefer `express.raw({ type: 'application/json' })` on the webhook route.
+
+**Split payments:**
+- Two routes: pre-configured `split_code` (created via the Splits API) OR ad-hoc `subaccount` on initialise.
+- `bearer: "subaccount"` makes the subaccount carry Paystack's transaction fees.
+
+## Common mistakes
+
+- **Using parsed `req.body` directly for HMAC** — when middleware re-serialises the object differently from how Paystack serialised it (key ordering, whitespace, unicode escapes), the hash will never match. Either keep the raw bytes (`express.raw`) or accept that `JSON.stringify(req.body)` is a brittle workaround that has worked historically but can break silently.
+- **Forgetting `currency: "ZAR"` on initialise** — Paystack defaults to the integration's currency, which can silently charge in NGN.
+- **Treating `initialize`'s `status: "success"` as "the customer paid"** — it only means initialisation succeeded; the customer is then redirected and may abandon. Always re-verify with `/transaction/verify/:reference` before fulfilling the order.
+- **Comparing signatures with `===`** — leaks timing info. Use `crypto.timingSafeEqual` on equal-length `Buffer`s.
+- **Sending rand instead of cents on initialise** — R150 becomes 150 *cents* (R1.50) charged to the customer.
+- **Logging the full webhook body to shared observability** — webhook payloads contain PII (cardholder names, masked PANs, IP addresses) that fall under POPIA processing rules. Scrub before sending to Sentry/Datadog.
+- **Ignoring the `event` field on webhooks** — Paystack fires events for `charge.success`, `transfer.success`, `subscription.create`, etc. Treating every webhook as a successful charge will double-credit on subscription renewals.
+
+## Configuration
+
+Store the secret key in `PAYSTACK_SECRET_KEY` (or `PAYSTACK_TEST_SECRET_KEY` for tests). Never commit it. The public key (`pk_live_...` / `pk_test_...`) is safe in client-side code.
+
+For SA merchants:
+- Integration currency in the Paystack dashboard → set to ZAR.
+- Webhook URL → `https://your-domain/api/paystack/webhook`, registered in the dashboard under *Settings → API Keys & Webhooks*.
+
+## See also
+
+- [`shared/za-primitives/vat.ts`](../../shared/za-primitives/vat.ts) — calculate VAT-inclusive amounts before converting to cents for `amount`.
+- [`skills/popia/SKILL.md`](../popia/SKILL.md) — store-of-PII handler rules apply to logged webhook payloads.
+
+## payfast
+
+> PayFast (SA) integration — generate form-post MD5 signatures in the documented field order with URL-encoded values, and verify ITN POST signatures using the same algorithm.
+
+# PayFast — South African payment integration
+
+Use when the user is wiring a frontend or backend to PayFast for South African card / EFT / Instant EFT / wallet payments. PayFast is form-post + ITN (Instant Transaction Notification) callback, not REST. The signing algorithm is the #1 source of integration failure — get it exactly right.
+
+## Triggers
+
+- "payfast"
+- "ITN"
+- "instant transaction notification"
+- "signature mismatch"
+- "merchant_id"
+- "m_payment_id"
+- "passphrase"
+- "sandbox.payfast.co.za"
+- "process.payfast"
+
+## Examples
+
+- [`examples/form-signature.ts`](./examples/form-signature.ts) — generate the hidden `signature` field for the checkout form
+- [`examples/itn-verify.ts`](./examples/itn-verify.ts) — verify an incoming ITN POST signature + recommended four-step ITN validation
+- [`examples/anti-pattern.ts`](./examples/anti-pattern.ts) — the four classic signature-mismatch causes with explanations
+- [`fixtures/itn-valid.txt`](./fixtures/itn-valid.txt) and [`fixtures/itn-invalid-sig.txt`](./fixtures/itn-invalid-sig.txt) — sample ITN POST bodies
+
+## Canonical signature algorithm
+
+PayFast's signature algorithm is documented in their PHP reference. Replicating it precisely is the only way the signatures match. The algorithm in TypeScript:
+
+```
+for each (key, value) in fields_in_documented_order:
+    if value === "" then skip
+    output += key + "=" + phpUrlEncode(value.trim()) + "&"
+output = output.slice(0, -1)          # drop trailing &
+if passphrase:
+    output += "&passphrase=" + phpUrlEncode(passphrase.trim())
+md5(output).hex()
+```
+
+**Three rules that trip everyone up:**
+
+1. **Field order matters and it is NOT alphabetical.** The "attributes description" order from the docs is canonical: `merchant_id, merchant_key, return_url, cancel_url, notify_url, name_first, name_last, email_address, cell_number, m_payment_id, amount, item_name, item_description, custom_int1..5, custom_str1..5, email_confirmation, confirmation_address, payment_method, subscription_type, billing_date, recurring_amount, frequency, cycles, subscription_notify_email, subscription_notify_webhook, subscription_notify_buyer`. PayFast explicitly warns: do not use the alphabetical API-signature ordering for form posts and ITNs.
+2. **URL-encode with PHP semantics** — spaces become `+`, not `%20`. `encodeURIComponent` in JavaScript uses `%20` and will mismatch. Implement a small `phpUrlEncode` helper that calls `encodeURIComponent` then replaces `%20` with `+`.
+3. **Empty fields are skipped, not included as `key=`.** And `value.trim()` strips leading/trailing whitespace before encoding.
+
+## ITN four-step validation (do all four)
+
+1. **Verify signature** — same algorithm as form-post, using the fields exactly as PayFast posted them (preserving the order in which they arrived).
+2. **Source-IP check** — PayFast publishes ITN IP ranges (`https://www.payfast.co.za/notify_method/host`). Reject ITNs from any other source.
+3. **Data integrity round-trip** — POST the entire received body back to `https://sandbox.payfast.co.za/eng/query/validate` (sandbox) or `https://www.payfast.co.za/eng/query/validate` (live) and expect `VALID` in the response.
+4. **Internal sanity check** — `amount_gross` matches the order, `m_payment_id` matches an open order in your DB, payment isn't already marked complete (idempotency).
+
+Skip any one of the four and you can be replay-attacked or spoofed.
+
+## URLs
+
+| Environment | Form POST URL | Validate URL |
+|---|---|---|
+| Sandbox | `https://sandbox.payfast.co.za/eng/process` | `https://sandbox.payfast.co.za/eng/query/validate` |
+| Live | `https://www.payfast.co.za/eng/process` | `https://www.payfast.co.za/eng/query/validate` |
+
+Use `m_payment_id` (your own UUID) as the idempotency key everywhere you persist ITN data.
+
+## Common mistakes
+
+- **URL-encoding spaces as `%20` instead of `+`** — signature mismatches every time. Use a PHP-compatible encoder.
+- **Sorting fields alphabetically** — that is the API-signature format, not the form-post format. PayFast warns against this in the docs.
+- **Including empty fields** — the algorithm skips them. Including `cell_number=&` when the buyer didn't provide one will break the hash.
+- **Not trimming values before encoding** — leading/trailing whitespace from a textarea can silently break the signature.
+- **Trusting an ITN that passes signature only** — without IP + validate-endpoint + DB sanity check, an attacker who can guess your passphrase or grab one valid ITN can replay it.
+- **Using `encodeURIComponent` without the `+` substitution** — equivalent to mistake #1 above.
+
+## Configuration
+
+- `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE` from the Merchant Dashboard. Sandbox values from `https://sandbox.payfast.co.za`.
+- The passphrase is optional but every PayFast support page recommends setting one.
+- The ITN URL (`notify_url`) must be HTTPS and reachable from PayFast's IPs.
+
+## See also
+
+- [`shared/za-primitives/vat.ts`](../../shared/za-primitives/vat.ts) — `amount` is the gross (VAT-inclusive) rand value in `0.00` format.
+- [`skills/popia/SKILL.md`](../popia/SKILL.md) — ITN bodies contain PII; the same logging-scrub + consent rules apply.
 

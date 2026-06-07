@@ -37,9 +37,11 @@ Five emitters, one source of truth. Add a runtime, the rest stay in sync. Add a 
 | | |
 |---|---|
 | Spec | approved 2026-06-07 |
-| Phase | Plan A (Foundation) — shipped as v0.0.1-alpha.0 |
-| Working today | `lint-skill`, `build`, `parse-skill`, `token-budget`, install CLI, full 5-runtime emitter pipeline (claude/cursor/copilot/codex/gemini), POPIA skill + examples + smoke test, hardened CI (CodeQL + Scorecard + pinned action SHAs) |
-| Next | paystack, payfast, sars-efiling skills · npm publish + plugin marketplace release → v0.1.0 (Plan B) |
+| Phase | Plan B (v0.1.0) — ready to ship |
+| Skills | `paystack` (HMAC-SHA-512 webhook verify, ZAR init, splits) · `payfast` (form-post MD5 sig in documented order, ITN four-step validation) · `popia` (PII + consent + DSAR) · `sars-efiling` (15% VAT, IRP5 source codes, ITR12 fields) |
+| Primitives | `validate-sa-id` (Luhn + DOB + citizenship) · `vat` (banker's rounding) · `bank-codes` (format validator + extensible PASA registry) |
+| Distribution | npm publish workflow with OIDC provenance · plugin marketplace auto-PR (guarded until Anthropic registry stable) |
+| Audit | 0 vulnerabilities · 78 tests · CodeQL + Scorecard + branch protection |
 
 Implementation is happening in `main`; commit history shows the TDD progression. Once Plan A finishes you can manually copy `dist/<runtime>/` into your project for any of the 5 runtimes.
 

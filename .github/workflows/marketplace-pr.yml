@@ -1,0 +1,96 @@
+name: Plugin marketplace PR
+
+# Fires after a successful Release run. Opens a PR against the Anthropic
+# Claude plugin marketplace registry with the updated marketplace.json.
+#
+# STATUS: gated off pending a stable Anthropic-hosted marketplace registry
+# URL and a MARKETPLACE_PR_TOKEN repo secret (fine-grained PAT scoped to the
+# marketplace registry repo with PR write only).
+#
+# To enable:
+#   1. Set repo variable MARKETPLACE_REPO to the registry slug (e.g.
+#      "anthropics/claude-plugins")
+#   2. Set repo secret MARKETPLACE_PR_TOKEN to a fine-grained PAT
+#   3. Remove the `if: false` guard below
+#
+# See SECURITY.md for the threat model around cross-repo PR automation.
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: marketplace-pr-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  open-pr:
+    if: ${{ false }} # guarded — flip once marketplace registry is live
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863 # v2.12.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout this repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build dist
+        run: |
+          npm ci
+          npm run build
+
+      - name: Checkout marketplace registry
+        env:
+          MARKETPLACE_REPO: ${{ vars.MARKETPLACE_REPO }}
+          MARKETPLACE_TOKEN: ${{ secrets.MARKETPLACE_PR_TOKEN }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ${{ env.MARKETPLACE_REPO }}
+          token: ${{ env.MARKETPLACE_TOKEN }}
+          path: marketplace
+          persist-credentials: false
+
+      - name: Stage updated manifest + open PR
+        env:
+          GH_TOKEN: ${{ secrets.MARKETPLACE_PR_TOKEN }}
+          MARKETPLACE_REPO: ${{ vars.MARKETPLACE_REPO }}
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          # Validate tag shape: vMAJOR.MINOR.PATCH(-alpha|beta|rc.NUM)? — anything
+          # else means an upstream workflow_run carried an unexpected ref and we
+          # must NOT use it in a branch name or commit message.
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
+            echo "refusing to publish for tag '$TAG' — unexpected shape" >&2
+            exit 1
+          fi
+          BRANCH="sa-fintech-skills-${TAG}"
+          cp dist/claude/.claude-plugin/marketplace.json \
+             marketplace/skills/sa-fintech-skills/marketplace.json
+          cd marketplace
+          git config user.name "sa-fintech-skills bot"
+          git config user.email "bot@sa-fintech-skills.example"
+          git checkout -b "$BRANCH"
+          git add skills/sa-fintech-skills/marketplace.json
+          git commit -m "chore(sa-fintech-skills): bump to ${TAG}"
+          git push -u origin "$BRANCH"
+          gh pr create --repo "$MARKETPLACE_REPO" \
+            --title "sa-fintech-skills ${TAG}" \
+            --body "Automated bump of sa-fintech-skills manifest to ${TAG}. Source: https://github.com/tzone85/sa-fintech-skills/releases/tag/${TAG}"

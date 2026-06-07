@@ -1,6 +1,6 @@
 {
   "name": "sa-fintech-skills",
-  "version": "0.0.1-alpha.0",
+  "version": "0.1.0",
   "description": "Multi-runtime AI-agent skill pack for South African fintech APIs (Paystack, PayFast, POPIA, SARS) — Claude Code, Cursor, Copilot, Codex, Gemini",
   "type": "module",
   "license": "MIT",
@@ -46,7 +46,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint:skills && npm test && npm run build && npm run smoke"
+    "verify": "npm run typecheck && npm run lint:skills && npm test && npm run build && npm run smoke",
+    "goldens:update": "tsx scripts/regen-goldens.ts",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "gpt-tokenizer": "^2.5.0",

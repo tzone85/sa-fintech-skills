@@ -1,0 +1,95 @@
+# sa-fintech-skills@0.0.0
+---
+name: payfast
+description: PayFast (SA) integration — generate form-post MD5 signatures in the documented field order with URL-encoded values, and verify ITN POST signatures using the same algorithm.
+metadata:
+  targets: [claude, cursor, copilot, codex, gemini]
+sources:
+  - url: https://developers.payfast.co.za/docs#checkout_security
+    retrieved: 2026-06-07
+  - url: https://developers.payfast.co.za/docs#itn
+    retrieved: 2026-06-07
+  - url: https://developers.payfast.co.za/docs#quickstart
+    retrieved: 2026-06-07
+---
+
+# PayFast — South African payment integration
+
+Use when the user is wiring a frontend or backend to PayFast for South African card / EFT / Instant EFT / wallet payments. PayFast is form-post + ITN (Instant Transaction Notification) callback, not REST. The signing algorithm is the #1 source of integration failure — get it exactly right.
+
+## Triggers
+
+- "payfast"
+- "ITN"
+- "instant transaction notification"
+- "signature mismatch"
+- "merchant_id"
+- "m_payment_id"
+- "passphrase"
+- "sandbox.payfast.co.za"
+- "process.payfast"
+
+## Examples
+
+- [`examples/form-signature.ts`](./examples/form-signature.ts) — generate the hidden `signature` field for the checkout form
+- [`examples/itn-verify.ts`](./examples/itn-verify.ts) — verify an incoming ITN POST signature + recommended four-step ITN validation
+- [`examples/anti-pattern.ts`](./examples/anti-pattern.ts) — the four classic signature-mismatch causes with explanations
+- [`fixtures/itn-valid.txt`](./fixtures/itn-valid.txt) and [`fixtures/itn-invalid-sig.txt`](./fixtures/itn-invalid-sig.txt) — sample ITN POST bodies
+
+## Canonical signature algorithm
+
+PayFast's signature algorithm is documented in their PHP reference. Replicating it precisely is the only way the signatures match. The algorithm in TypeScript:
+
+```
+for each (key, value) in fields_in_documented_order:
+    if value === "" then skip
+    output += key + "=" + phpUrlEncode(value.trim()) + "&"
+output = output.slice(0, -1)          # drop trailing &
+if passphrase:
+    output += "&passphrase=" + phpUrlEncode(passphrase.trim())
+md5(output).hex()
+```
+
+**Three rules that trip everyone up:**
+
+1. **Field order matters and it is NOT alphabetical.** The "attributes description" order from the docs is canonical: `merchant_id, merchant_key, return_url, cancel_url, notify_url, name_first, name_last, email_address, cell_number, m_payment_id, amount, item_name, item_description, custom_int1..5, custom_str1..5, email_confirmation, confirmation_address, payment_method, subscription_type, billing_date, recurring_amount, frequency, cycles, subscription_notify_email, subscription_notify_webhook, subscription_notify_buyer`. PayFast explicitly warns: do not use the alphabetical API-signature ordering for form posts and ITNs.
+2. **URL-encode with PHP semantics** — spaces become `+`, not `%20`. `encodeURIComponent` in JavaScript uses `%20` and will mismatch. Implement a small `phpUrlEncode` helper that calls `encodeURIComponent` then replaces `%20` with `+`.
+3. **Empty fields are skipped, not included as `key=`.** And `value.trim()` strips leading/trailing whitespace before encoding.
+
+## ITN four-step validation (do all four)
+
+1. **Verify signature** — same algorithm as form-post, using the fields exactly as PayFast posted them (preserving the order in which they arrived).
+2. **Source-IP check** — PayFast publishes ITN IP ranges (`https://www.payfast.co.za/notify_method/host`). Reject ITNs from any other source.
+3. **Data integrity round-trip** — POST the entire received body back to `https://sandbox.payfast.co.za/eng/query/validate` (sandbox) or `https://www.payfast.co.za/eng/query/validate` (live) and expect `VALID` in the response.
+4. **Internal sanity check** — `amount_gross` matches the order, `m_payment_id` matches an open order in your DB, payment isn't already marked complete (idempotency).
+
+Skip any one of the four and you can be replay-attacked or spoofed.
+
+## URLs
+
+| Environment | Form POST URL | Validate URL |
+|---|---|---|
+| Sandbox | `https://sandbox.payfast.co.za/eng/process` | `https://sandbox.payfast.co.za/eng/query/validate` |
+| Live | `https://www.payfast.co.za/eng/process` | `https://www.payfast.co.za/eng/query/validate` |
+
+Use `m_payment_id` (your own UUID) as the idempotency key everywhere you persist ITN data.
+
+## Common mistakes
+
+- **URL-encoding spaces as `%20` instead of `+`** — signature mismatches every time. Use a PHP-compatible encoder.
+- **Sorting fields alphabetically** — that is the API-signature format, not the form-post format. PayFast warns against this in the docs.
+- **Including empty fields** — the algorithm skips them. Including `cell_number=&` when the buyer didn't provide one will break the hash.
+- **Not trimming values before encoding** — leading/trailing whitespace from a textarea can silently break the signature.
+- **Trusting an ITN that passes signature only** — without IP + validate-endpoint + DB sanity check, an attacker who can guess your passphrase or grab one valid ITN can replay it.
+- **Using `encodeURIComponent` without the `+` substitution** — equivalent to mistake #1 above.
+
+## Configuration
+
+- `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE` from the Merchant Dashboard. Sandbox values from `https://sandbox.payfast.co.za`.
+- The passphrase is optional but every PayFast support page recommends setting one.
+- The ITN URL (`notify_url`) must be HTTPS and reachable from PayFast's IPs.
+
+## See also
+
+- [`shared/za-primitives/vat.ts`](../../shared/za-primitives/vat.ts) — `amount` is the gross (VAT-inclusive) rand value in `0.00` format.
+- [`skills/popia/SKILL.md`](../popia/SKILL.md) — ITN bodies contain PII; the same logging-scrub + consent rules apply.

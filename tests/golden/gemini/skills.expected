@@ -3,9 +3,24 @@
   "version": "0.0.0",
   "skills": [
     {
+      "name": "sars-efiling",
+      "description": "SARS tax workflows for South African builds — VAT 15% (effective 2018) calculations, IRP5/IT3(a) source codes, and ITR12 field references with citations to the SARS-published guides.",
+      "body": "skills/sars-efiling.md"
+    },
+    {
       "name": "popia",
       "description": "Audit SA code for POPIA compliance — PII handling, consent flags, data residency, and DSAR endpoint requirements.",
       "body": "skills/popia.md"
+    },
+    {
+      "name": "paystack",
+      "description": "Integrate Paystack for SA merchants — initialise ZAR transactions, verify HMAC-SHA-512 webhooks, and route split payments without the gotchas that break production.",
+      "body": "skills/paystack.md"
+    },
+    {
+      "name": "payfast",
+      "description": "PayFast (SA) integration — generate form-post MD5 signatures in the documented field order with URL-encoded values, and verify ITN POST signatures using the same algorithm.",
+      "body": "skills/payfast.md"
     }
   ]
 }
