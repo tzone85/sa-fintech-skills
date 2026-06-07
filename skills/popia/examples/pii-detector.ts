@@ -15,8 +15,11 @@ export function detect(path: string): DetectorFinding[] {
   const lines = content.split("\n");
   const findings: DetectorFinding[] = [];
 
+  const codeLines = lines
+    .filter((line) => !line.trim().startsWith("//"))
+    .join("\n");
   const hasConsent = CONSENT_HINTS.some((hint) =>
-    content.toLowerCase().includes(hint.toLowerCase()),
+    codeLines.toLowerCase().includes(hint.toLowerCase()),
   );
 
   lines.forEach((line, idx) => {
@@ -24,8 +27,7 @@ export function detect(path: string): DetectorFinding[] {
       findings.push({
         file: path,
         line: idx + 1,
-        reason:
-          "SA ID reference without matching consent field in same module",
+        reason: "SA ID reference without matching consent field in same module",
       });
     }
   });
