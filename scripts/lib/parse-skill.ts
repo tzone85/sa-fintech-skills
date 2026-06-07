@@ -1,19 +1,7 @@
 import matter from "gray-matter";
+import { ALL_TARGETS, type RuntimeTarget } from "./runtime-config.ts";
 
-const VALID_TARGETS = new Set<string>([
-  "claude",
-  "cursor",
-  "copilot",
-  "codex",
-  "gemini",
-]);
-
-export type RuntimeTarget =
-  | "claude"
-  | "cursor"
-  | "copilot"
-  | "codex"
-  | "gemini";
+export type { RuntimeTarget };
 
 export interface SkillFrontmatter {
   name: string;
@@ -58,7 +46,9 @@ export function parseSkill(source: string): ParsedSkill {
       'SKILL.md: frontmatter missing required key "metadata.targets"',
     );
   }
-  const invalid = fm.metadata.targets.filter((t) => !VALID_TARGETS.has(t));
+  const invalid = fm.metadata.targets.filter(
+    (t) => !ALL_TARGETS.includes(t as RuntimeTarget),
+  );
   if (invalid.length > 0) {
     throw new Error(
       `SKILL.md: invalid metadata.targets: ${invalid.join(", ")}. ` +
