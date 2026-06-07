@@ -1,23 +1,58 @@
 {
   "name": "sa-fintech-skills",
-  "version": "0.0.0",
-  "description": "Multi-runtime AI-agent skill pack for South African fintech APIs",
+  "version": "0.0.1-alpha.0",
+  "description": "Multi-runtime AI-agent skill pack for South African fintech APIs (Paystack, PayFast, POPIA, SARS) — Claude Code, Cursor, Copilot, Codex, Gemini",
   "type": "module",
   "license": "MIT",
-  "repository": "github:tzone85/sa-fintech-skills",
+  "author": "Thando Mini",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tzone85/sa-fintech-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tzone85/sa-fintech-skills/issues"
+  },
+  "homepage": "https://github.com/tzone85/sa-fintech-skills#readme",
+  "keywords": [
+    "ai-agents",
+    "claude-code",
+    "cursor",
+    "copilot",
+    "codex",
+    "gemini",
+    "agent-skills",
+    "paystack",
+    "payfast",
+    "popia",
+    "sars",
+    "south-africa",
+    "fintech"
+  ],
   "engines": { "node": ">=22" },
+  "files": [
+    "scripts/",
+    "skills/",
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "CONTRIBUTING.md"
+  ],
   "scripts": {
     "lint:skills": "tsx scripts/lint-skill.ts skills/*/SKILL.md",
     "build": "tsx scripts/build.ts",
     "smoke": "tsx scripts/smoke-test.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint:skills && npm test && npm run build && npm run smoke"
+  },
+  "dependencies": {
+    "gpt-tokenizer": "^2.5.0",
+    "gray-matter": "^4.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^2.0.0",
-    "gpt-tokenizer": "^2.5.0",
-    "gray-matter": "^4.0.3",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
