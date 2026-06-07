@@ -1,0 +1,18 @@
+{
+  "signature": "9f7ffa0ca7df355faee2d360bcc857f19f23a78bd20ddf85aaf6665e1f52045962aa65a85eb4fd0140f5af216915a3f329d4ba4005bbdc2d070008eef0388dff",
+  "body": {
+    "event": "charge.success",
+    "data": {
+      "id": 4099260516,
+      "domain": "test",
+      "status": "success",
+      "reference": "ord-fixture-001",
+      "amount": 15000,
+      "currency": "ZAR",
+      "customer": {
+        "email": "buyer@example.co.za"
+      },
+      "paid_at": "2026-06-07T17:00:00.000Z"
+    }
+  }
+}
