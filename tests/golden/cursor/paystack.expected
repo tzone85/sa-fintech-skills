@@ -1,0 +1,72 @@
+---
+description: Integrate Paystack for SA merchants — initialise ZAR transactions, verify HMAC-SHA-512 webhooks, and route split payments without the gotchas that break production.
+globs: ["**/*.ts","**/*.tsx","**/*.py","**/*.js"]
+alwaysApply: false
+# sa-fintech-skills@0.0.0
+---
+
+# Paystack — South African payment integration
+
+Use when the user is wiring a backend to Paystack for **South African card payments**. Paystack supports ZAR for SA merchants alongside NGN, GHS, KES, XOF, and EGP. Common operations: initialise a transaction, verify webhooks, verify a transaction reference, route money via split payments.
+
+## Triggers
+
+- "paystack"
+- "init transaction"
+- "verify webhook"
+- "x-paystack-signature"
+- "split payment"
+- "subaccount"
+- "transaction reference"
+- "ZAR payment"
+
+## Examples
+
+- [`examples/init-transaction.ts`](./examples/init-transaction.ts) — server-side initialise with explicit ZAR + amount in cents
+- [`examples/verify-webhook.ts`](./examples/verify-webhook.ts) — Express handler with HMAC-SHA-512 signature verify using `crypto.timingSafeEqual`
+- [`examples/anti-pattern.ts`](./examples/anti-pattern.ts) — common wrong patterns with explanations
+- [`fixtures/webhook-valid.json`](./fixtures/webhook-valid.json) and [`fixtures/webhook-invalid-sig.json`](./fixtures/webhook-invalid-sig.json) — signed payloads keyed by the test secret `sk_test_paystack_skill_fixture_secret_2026`
+
+## Canonical rules
+
+**Initialise transaction (POST `/transaction/initialize`):**
+- Amount must be in the **subunit** of the currency. For ZAR that means **cents** — multiply rand by 100. R150.00 = 15000.
+- Set `currency: "ZAR"` explicitly. Paystack defaults to the integration's primary currency, which for some accounts is NGN.
+- Returns `data.authorization_url` — redirect the customer to that URL. Returning `status: "success"` from initialize means *initialisation* succeeded, NOT that the customer paid.
+
+**Verify transaction (GET `/transaction/verify/:reference`):**
+- The only safe source of truth for whether a customer actually paid.
+- Check `data.status === "success"` AND `data.amount === expectedAmountInCents` AND `data.currency === "ZAR"` before fulfilling.
+
+**Webhook signature verify:**
+- Paystack sends events with header `x-paystack-signature`.
+- Signature is `HMAC-SHA-512` over the request body, signed with your **secret key** (`sk_live_...` or `sk_test_...`).
+- Use `crypto.timingSafeEqual` to compare — never `===` (timing attack).
+- Use the **raw request body** if at all possible. If using `express.json()`, the body is already parsed and you must `JSON.stringify(req.body)` to recreate the bytes Paystack signed; this works in practice but is fragile if either side changes serialisation. Prefer `express.raw({ type: 'application/json' })` on the webhook route.
+
+**Split payments:**
+- Two routes: pre-configured `split_code` (created via the Splits API) OR ad-hoc `subaccount` on initialise.
+- `bearer: "subaccount"` makes the subaccount carry Paystack's transaction fees.
+
+## Common mistakes
+
+- **Using parsed `req.body` directly for HMAC** — when middleware re-serialises the object differently from how Paystack serialised it (key ordering, whitespace, unicode escapes), the hash will never match. Either keep the raw bytes (`express.raw`) or accept that `JSON.stringify(req.body)` is a brittle workaround that has worked historically but can break silently.
+- **Forgetting `currency: "ZAR"` on initialise** — Paystack defaults to the integration's currency, which can silently charge in NGN.
+- **Treating `initialize`'s `status: "success"` as "the customer paid"** — it only means initialisation succeeded; the customer is then redirected and may abandon. Always re-verify with `/transaction/verify/:reference` before fulfilling the order.
+- **Comparing signatures with `===`** — leaks timing info. Use `crypto.timingSafeEqual` on equal-length `Buffer`s.
+- **Sending rand instead of cents on initialise** — R150 becomes 150 *cents* (R1.50) charged to the customer.
+- **Logging the full webhook body to shared observability** — webhook payloads contain PII (cardholder names, masked PANs, IP addresses) that fall under POPIA processing rules. Scrub before sending to Sentry/Datadog.
+- **Ignoring the `event` field on webhooks** — Paystack fires events for `charge.success`, `transfer.success`, `subscription.create`, etc. Treating every webhook as a successful charge will double-credit on subscription renewals.
+
+## Configuration
+
+Store the secret key in `PAYSTACK_SECRET_KEY` (or `PAYSTACK_TEST_SECRET_KEY` for tests). Never commit it. The public key (`pk_live_...` / `pk_test_...`) is safe in client-side code.
+
+For SA merchants:
+- Integration currency in the Paystack dashboard → set to ZAR.
+- Webhook URL → `https://your-domain/api/paystack/webhook`, registered in the dashboard under *Settings → API Keys & Webhooks*.
+
+## See also
+
+- [`shared/za-primitives/vat.ts`](../../shared/za-primitives/vat.ts) — calculate VAT-inclusive amounts before converting to cents for `amount`.
+- [`skills/popia/SKILL.md`](../popia/SKILL.md) — store-of-PII handler rules apply to logged webhook payloads.
