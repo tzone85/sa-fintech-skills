@@ -1,22 +1,9 @@
-import type { ParsedSkill } from "../lib/parse-skill.ts";
-
-export interface SkillInput {
-  source: string;
-  parsed: ParsedSkill;
-}
-
-export interface EmittedFile {
-  path: string;
-  content: string;
-}
-
-export interface EmitOptions {
-  version: string;
-}
-
-export interface EmitResult {
-  files: EmittedFile[];
-}
+import type {
+  SkillInput,
+  EmittedFile,
+  EmitOptions,
+  EmitResult,
+} from "./types.ts";
 
 const versionHeader = (v: string): string => `# sa-fintech-skills@${v}\n`;
 
