@@ -51,7 +51,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "gpt-tokenizer": "^2.5.0",
+    "gpt-tokenizer": "^3.4.0",
     "gray-matter": "^4.0.3"
   },
   "devDependencies": {
