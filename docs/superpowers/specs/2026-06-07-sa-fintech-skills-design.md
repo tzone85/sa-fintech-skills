@@ -151,7 +151,7 @@ No silent fallbacks. Skill never says "if signature fails, log and continue". Al
 | `name` | kebab-case |
 | `description` | 60–200 chars |
 | `metadata.targets` | subset of allowed runtimes |
-| Body sections | `## Triggers`, `## Examples`, `## Common mistakes` present |
+| Body sections | literal H2 headings `## Triggers`, `## Examples`, `## Common mistakes` all present (string match, case-sensitive) |
 | Token budget | body + examples within per-target budget |
 | Trigger phrases | ≥ 3 distinct per skill |
 | Markdown links | no broken refs |
