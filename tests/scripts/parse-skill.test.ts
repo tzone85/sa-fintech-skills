@@ -92,4 +92,21 @@ last line
     expect(parsed.sections.examples).toBeNull();
     expect(parsed.sections.commonMistakes).toBeNull();
   });
+
+  it("throws on missing description", () => {
+    const src = `---\nname: x\nmetadata: { targets: [claude] }\n---\n# body\n`;
+    expect(() => parseSkill(src)).toThrow(/description/);
+  });
+
+  it("throws on missing metadata.targets", () => {
+    const src = `---\nname: x\ndescription: y\nmetadata: {}\n---\n# body\n`;
+    expect(() => parseSkill(src)).toThrow(/targets/);
+  });
+
+  it("throws on invalid runtime targets", () => {
+    const src = `---\nname: x\ndescription: y\nmetadata: { targets: [claude, paystack, foo] }\n---\n# body\n`;
+    expect(() => parseSkill(src)).toThrow(
+      /invalid.*paystack.*foo|invalid.*foo.*paystack/i,
+    );
+  });
 });

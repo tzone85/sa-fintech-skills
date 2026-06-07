@@ -1,5 +1,13 @@
 import matter from "gray-matter";
 
+const VALID_TARGETS = new Set<string>([
+  "claude",
+  "cursor",
+  "copilot",
+  "codex",
+  "gemini",
+]);
+
 export type RuntimeTarget =
   | "claude"
   | "cursor"
@@ -26,6 +34,8 @@ export interface ParsedSkill {
 }
 
 function extractSection(body: string, heading: string): string | null {
+  // Anchored to start-of-string OR newline (gray-matter strips leading newline when body opens with H2);
+  // captures section body up to the next "\n## " heading or true end-of-string.
   const re = new RegExp(
     `(?:^|\\n)## ${heading}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`,
   );
@@ -46,6 +56,13 @@ export function parseSkill(source: string): ParsedSkill {
   if (!fm.metadata?.targets?.length) {
     throw new Error(
       'SKILL.md: frontmatter missing required key "metadata.targets"',
+    );
+  }
+  const invalid = fm.metadata.targets.filter((t) => !VALID_TARGETS.has(t));
+  if (invalid.length > 0) {
+    throw new Error(
+      `SKILL.md: invalid metadata.targets: ${invalid.join(", ")}. ` +
+        `Valid: claude, cursor, copilot, codex, gemini`,
     );
   }
 
