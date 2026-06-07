@@ -37,10 +37,9 @@ Five emitters, one source of truth. Add a runtime, the rest stay in sync. Add a 
 | | |
 |---|---|
 | Spec | approved 2026-06-07 |
-| Phase | Plan A (Foundation) — in progress, ~⅔ complete |
-| Working today | `lint-skill`, `build`, `parse-skill`, `token-budget`, `popia` skill + examples + 3 of 5 emitters (claude, cursor, copilot) |
-| Next | codex + gemini emitters · build orchestrator · POPIA smoke test → v0.0.1-alpha |
-| Plan B | paystack, payfast, sars-efiling skills · `install` CLI · CI · npm + plugin marketplace release → v0.1.0 |
+| Phase | Plan A (Foundation) — shipped as v0.0.1-alpha.0 |
+| Working today | `lint-skill`, `build`, `parse-skill`, `token-budget`, install CLI, full 5-runtime emitter pipeline (claude/cursor/copilot/codex/gemini), POPIA skill + examples + smoke test, hardened CI (CodeQL + Scorecard + pinned action SHAs) |
+| Next | paystack, payfast, sars-efiling skills · npm publish + plugin marketplace release → v0.1.0 (Plan B) |
 
 Implementation is happening in `main`; commit history shows the TDD progression. Once Plan A finishes you can manually copy `dist/<runtime>/` into your project for any of the 5 runtimes.
 
@@ -92,9 +91,29 @@ docs/                           spec, plan, diagrams
 | Plan A (Foundation) | [`docs/superpowers/plans/2026-06-07-sa-fintech-skills-foundation.md`](docs/superpowers/plans/2026-06-07-sa-fintech-skills-foundation.md) |
 | Diagrams | [`docs/diagrams/`](docs/diagrams/) — rendered SVG + mermaid sources |
 
+## Security
+
+This project ships content that AI agents apply to **payments and personal information** — the threat surface is wider than a typical npm utility. See [SECURITY.md](SECURITY.md) for the threat model, supported versions, and private vulnerability reporting path.
+
+Current posture:
+
+| Control | State |
+|---|---|
+| Private vulnerability reporting (GitHub PVR) | ✓ enabled |
+| Secret scanning + push protection | ✓ enabled |
+| Dependabot security updates | ✓ enabled (weekly grouped npm + actions PRs) |
+| CodeQL — `security-and-quality` query suite | ✓ JS/TS + actions matrix, weekly + on PR |
+| OSSF Scorecard | ✓ weekly + on `branch_protection_rule` |
+| Branch protection on `main` | ✓ linear history, no force-push, no delete, code-owner review required, status check `verify` must pass |
+| CI runner hardening | ✓ `permissions: {}` deny-all default, all actions pinned to commit SHAs, `persist-credentials: false`, harden-runner audit egress |
+| `npm audit` | 0 vulnerabilities (was 6 before vitest 4 upgrade) |
+| CODEOWNERS routing | `/skills/`, `/scripts/`, `/.github/`, LICENSE, SECURITY.md → @tzone85 |
+
+Vulnerability reports → **https://github.com/tzone85/sa-fintech-skills/security/advisories/new**
+
 ## Contributing
 
-Not accepting external PRs yet (pre-v0.1.0). Issues welcome — especially: PayFast/SARS API behaviour you've hit in production, POPIA edge cases your team has lawyered, or a runtime we haven't covered.
+Not accepting external code PRs yet (pre-v0.1.0). Issues welcome — especially: PayFast/SARS API behaviour you've hit in production, POPIA edge cases your team has lawyered, or a runtime we haven't covered. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
