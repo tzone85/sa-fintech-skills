@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { lintSkill } from '../../scripts/lint-skill.ts';
+import { describe, it, expect } from "vitest";
+import { lintSkill } from "../../scripts/lint-skill.ts";
 
 function valid(over = {}): string {
   return `---
 name: popia
-description: ${'POPIA compliance skill for SA code — PII, consent, residency.'.padEnd(60, ' ')}
+description: ${"POPIA compliance skill for SA code — PII, consent, residency.".padEnd(60, " ")}
 metadata:
   targets: [claude, cursor, copilot, codex, gemini]
 ---
@@ -27,31 +27,42 @@ Storing ID numbers without consent flag.
 `;
 }
 
-describe('lintSkill', () => {
-  it('passes a valid skill', () => {
+describe("lintSkill", () => {
+  it("passes a valid skill", () => {
     const result = lintSkill(valid());
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual([]);
   });
 
-  it('fails when triggers section absent', () => {
-    const src = valid().replace(/## Triggers[\s\S]*?(?=## )/, '');
+  it("fails when triggers section absent", () => {
+    const src = valid().replace(/## Triggers[\s\S]*?(?=## )/, "");
     const result = lintSkill(src);
     expect(result.ok).toBe(false);
-    expect(result.errors.join('\n')).toMatch(/Triggers/);
+    expect(result.errors.join("\n")).toMatch(/Triggers/);
   });
 
-  it('fails when fewer than 3 triggers', () => {
-    const src = valid().replace(/- "PII handling"\n- "consent flag"\n/, '');
+  it("fails when fewer than 3 triggers", () => {
+    const src = valid().replace(/- "PII handling"\n- "consent flag"\n/, "");
     const result = lintSkill(src);
     expect(result.ok).toBe(false);
-    expect(result.errors.join('\n')).toMatch(/at least 3 trigger/i);
+    expect(result.errors.join("\n")).toMatch(/at least 3 trigger/i);
   });
 
-  it('fails when description too short', () => {
-    const src = valid().replace(/description: .*/, 'description: short');
+  it("fails when description too short", () => {
+    const src = valid().replace(/description: .*/, "description: short");
     const result = lintSkill(src);
     expect(result.ok).toBe(false);
-    expect(result.errors.join('\n')).toMatch(/description/);
+    expect(result.errors.join("\n")).toMatch(/description/);
+  });
+
+  it("fails when body exceeds runtime cap", () => {
+    const bigBody = "- trigger phrase\n".repeat(3000);
+    const src = valid().replace(
+      /## Triggers[\s\S]*?(?=## Examples)/,
+      `## Triggers\n\n${bigBody}\n`,
+    );
+    const result = lintSkill(src);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toMatch(/cursor.*cap|exceeds.*tokens/i);
   });
 });

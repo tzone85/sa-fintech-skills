@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { parseSkill } from './lib/parse-skill.ts';
-import { checkBudget } from './lib/token-budget.ts';
+import { readFileSync } from "node:fs";
+import { parseSkill, type ParsedSkill } from "./lib/parse-skill.ts";
+import { checkBudget } from "./lib/token-budget.ts";
 
 export interface LintResult {
   ok: boolean;
@@ -12,11 +12,11 @@ const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export function lintSkill(source: string): LintResult {
   const errors: string[] = [];
 
-  let parsed;
+  let parsed: ParsedSkill;
   try {
     parsed = parseSkill(source);
   } catch (e) {
-    return { ok: false, errors: [(e as Error).message] };
+    return { ok: false, errors: [e instanceof Error ? e.message : String(e)] };
   }
 
   const { frontmatter, body, sections } = parsed;
@@ -24,18 +24,28 @@ export function lintSkill(source: string): LintResult {
   if (!NAME_RE.test(frontmatter.name)) {
     errors.push(`name must be kebab-case, got "${frontmatter.name}"`);
   }
-  if (frontmatter.description.length < 60 || frontmatter.description.length > 200) {
-    errors.push(`description must be 60-200 chars (got ${frontmatter.description.length})`);
+  if (
+    frontmatter.description.length < 60 ||
+    frontmatter.description.length > 200
+  ) {
+    errors.push(
+      `description must be 60-200 chars (got ${frontmatter.description.length})`,
+    );
   }
 
-  if (!sections.triggers) errors.push('body missing literal "## Triggers" section');
-  if (!sections.examples) errors.push('body missing literal "## Examples" section');
-  if (!sections.commonMistakes) errors.push('body missing literal "## Common mistakes" section');
+  if (!sections.triggers)
+    errors.push('body missing literal "## Triggers" section');
+  if (!sections.examples)
+    errors.push('body missing literal "## Examples" section');
+  if (!sections.commonMistakes)
+    errors.push('body missing literal "## Common mistakes" section');
 
   if (sections.triggers) {
     const triggerCount = (sections.triggers.match(/^- /gm) ?? []).length;
     if (triggerCount < 3) {
-      errors.push(`Triggers section needs at least 3 trigger phrases (got ${triggerCount})`);
+      errors.push(
+        `Triggers section needs at least 3 trigger phrases (got ${triggerCount})`,
+      );
     }
   }
 
@@ -44,7 +54,7 @@ export function lintSkill(source: string): LintResult {
     if (!budget.ok) {
       errors.push(
         `body exceeds ${runtime} cap (${budget.tokens} > ${budget.cap} tokens); ` +
-        `drop ${runtime} from metadata.targets or shrink body`
+          `drop ${runtime} from metadata.targets or shrink body`,
       );
     }
   }
@@ -52,15 +62,16 @@ export function lintSkill(source: string): LintResult {
   return { ok: errors.length === 0, errors };
 }
 
+/* v8 ignore start — CLI entry, exercised end-to-end in Plan B */
 async function main() {
   const args = process.argv.slice(2);
   if (args.length === 0) {
-    console.error('usage: lint-skill <SKILL.md> [...more]');
+    console.error("usage: lint-skill <SKILL.md> [...more]");
     process.exit(2);
   }
   let failed = 0;
   for (const path of args) {
-    const src = readFileSync(path, 'utf8');
+    const src = readFileSync(path, "utf8");
     const result = lintSkill(src);
     if (result.ok) {
       console.log(`OK  ${path}`);
@@ -76,3 +87,4 @@ async function main() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
+/* v8 ignore stop */
