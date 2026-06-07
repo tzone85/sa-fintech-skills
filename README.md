@@ -1,21 +1,50 @@
 # sa-fintech-skills
 
-Multi-runtime AI-agent skill pack for South African fintech APIs.
+> Stop your AI assistant hallucinating South African payment integrations.
+
+A curated, version-pinned skill pack for AI coding agents — Claude Code, Cursor, Copilot, Codex, and Gemini — covering Paystack, PayFast, POPIA, and SARS. One canonical source, five runtimes, MIT-licensed.
+
+## Who this is for
+
+- **Indie devs and startup engineers shipping payment flows in ZA** — Paystack, PayFast, Yoco. Your agent invents signature schemes; you fix them at 2am.
+- **Compliance-aware teams handling SA personal information** — your DPO wants POPIA consent flags and DSAR endpoints; your agent doesn't know what those are.
+- **Anyone integrating SARS eFiling, IRP5, VAT, or IT3(b)** — niche, badly-documented, training-data desert.
+
+If you write code that touches `paystack.co`, `payfast.co.za`, an SA ID number, or a VAT calc — this pack is for you.
+
+## The problem
+
+AI training data is thin on SA fintech. Without help, agents:
+
+- Write PayFast signature code that omits the URL-encode-before-MD5 step (silently fails ITN verification in production).
+- Forget POPIA §11 consent capture, then your storage-of-PII handler ships a §11 violation.
+- Default Paystack currency to USD instead of ZAR.
+- Invent SARS field codes that don't exist.
+- Suggest US-region storage for SA customer data with no §72 transborder safeguard.
+
+The fix isn't "tell the agent more in the prompt" — it's a curated knowledge bundle the agent loads automatically when the work matches.
+
+## What this pack does
+
+Each skill is a single `SKILL.md` with triggers, runnable examples, and explicit "common mistakes" anti-patterns. The build step emits per-runtime artefacts so the same source ships to every supported agent:
+
+![architecture](docs/diagrams/architecture.svg)
+
+Five emitters, one source of truth. Add a runtime, the rest stay in sync. Add a skill, every runtime gets it.
+
+## Status
 
 | | |
 |---|---|
-| Status | design approved 2026-06-07 — implementation pending |
-| License | MIT |
-| Runtimes | Claude Code · Cursor · Copilot · Codex · Gemini |
-| Skills (v1) | `paystack` · `payfast` · `popia` · `sars-efiling` |
+| Spec | approved 2026-06-07 |
+| Phase | Plan A (Foundation) — in progress, ~⅔ complete |
+| Working today | `lint-skill`, `build`, `parse-skill`, `token-budget`, `popia` skill + examples + 3 of 5 emitters (claude, cursor, copilot) |
+| Next | codex + gemini emitters · build orchestrator · POPIA smoke test → v0.0.1-alpha |
+| Plan B | paystack, payfast, sars-efiling skills · `install` CLI · CI · npm + plugin marketplace release → v0.1.0 |
 
-## What this gives an agent
+Implementation is happening in `main`; commit history shows the TDD progression. Once Plan A finishes you can manually copy `dist/<runtime>/` into your project for any of the 5 runtimes.
 
-AI training data is thin on Paystack webhook signing, PayFast ITN verification, POPIA consent flags, and SARS field codes. Without help, agents hallucinate.
-
-This pack ships canonical, version-pinned `SKILL.md` files plus runnable examples and known anti-patterns so any compatible agent gets the SA-specific rules right on the first try.
-
-## Install (after v0.1.0 ships — currently design only)
+## Install (after v0.1.0 ships)
 
 ```
 # Claude Code
@@ -25,20 +54,47 @@ This pack ships canonical, version-pinned `SKILL.md` files plus runnable example
 npx sa-fintech-skills install
 ```
 
-## Spec
+## Skills (v1)
 
-[`docs/superpowers/specs/2026-06-07-sa-fintech-skills-design.md`](docs/superpowers/specs/2026-06-07-sa-fintech-skills-design.md)
+| Skill | Triggers | What it teaches |
+|---|---|---|
+| `paystack` | "paystack", "init payment", "verify webhook", "split payment" | HMAC-SHA-512 webhook verify, init, subscriptions, splits, ZAR gotchas |
+| `payfast` | "payfast", "ITN", "subscription token" | Form-post MD5 signature, ITN verify, sandbox/live URL switch, tokenisation |
+| `popia` | "popia", "PII", "consent flag", "data residency", "DSAR" | Code audit for PII handling, consent capture, residency, DSAR endpoint template |
+| `sars-efiling` | "sars", "VAT", "ITR12", "tax cert" | VAT 15% rounding, IRP5 codes, ITR12 field map, IT3(b) cert skeleton |
+
+Each skill ships with a `## Common mistakes` block listing the failures we keep seeing in agent output — so the agent learns the boundary, not just the happy path.
+
+## Why MIT, why open source
+
+This pack is free credibility infrastructure for the SA dev community. If you ship something useful built on top of it, the right thing to do is link back or contribute a skill. Paid siblings (Spring Boot, Next.js + AI) live separately.
 
 ## Layout
 
 ```
 skills/<name>/SKILL.md          canonical source
-shared/za-primitives/           SA ID validate, VAT calc, bank codes
-scripts/                        build + lint + smoke
-dist/<runtime>/                 generated artefacts (gitignored)
-tests/golden/<runtime>/         emitter output goldens
-docs/                           specs, diagrams, ADRs
+skills/<name>/examples/         runnable TS snippets
+shared/za-primitives/           SA ID validate, VAT calc, bank codes (Plan B)
+scripts/lib/                    parse-skill, token-budget, runtime-config
+scripts/emitters/               one file per runtime
+scripts/lint-skill.ts           CLI validator
+scripts/build.ts                CLI orchestrator (Plan A T11)
+dist/<runtime>/                 generated, gitignored
+tests/golden/<runtime>/         emitter output snapshots (contracts)
+docs/                           spec, plan, diagrams
 ```
+
+## Docs
+
+| | |
+|---|---|
+| Design spec | [`docs/superpowers/specs/2026-06-07-sa-fintech-skills-design.md`](docs/superpowers/specs/2026-06-07-sa-fintech-skills-design.md) |
+| Plan A (Foundation) | [`docs/superpowers/plans/2026-06-07-sa-fintech-skills-foundation.md`](docs/superpowers/plans/2026-06-07-sa-fintech-skills-foundation.md) |
+| Diagrams | [`docs/diagrams/`](docs/diagrams/) — rendered SVG + mermaid sources |
+
+## Contributing
+
+Not accepting external PRs yet (pre-v0.1.0). Issues welcome — especially: PayFast/SARS API behaviour you've hit in production, POPIA edge cases your team has lawyered, or a runtime we haven't covered.
 
 ## License
 
