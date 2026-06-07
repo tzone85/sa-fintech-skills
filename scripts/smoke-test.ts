@@ -1,45 +1,38 @@
-import { detect } from '../skills/popia/examples/pii-detector.ts';
+import { smokePopia } from "./smoke/popia.ts";
+import { smokePaystack } from "./smoke/paystack.ts";
+import { smokePayfast } from "./smoke/payfast.ts";
+import { smokeSars } from "./smoke/sars.ts";
 
-const ANTI = 'skills/popia/examples/anti-pattern.ts';
-const CONSENT = 'skills/popia/examples/consent-flag.ts';
+export {
+  smokePopia,
+  smokePaystack,
+  smokePayfast,
+  smokeSars,
+};
 
-export interface SmokeResult {
-  ok: boolean;
-  flagged: string[];
-  reasons: string[];
+export async function runAllSmokes() {
+  return Promise.all([
+    Promise.resolve(smokePopia()),
+    smokePaystack(),
+    Promise.resolve(smokePayfast()),
+    Promise.resolve(smokeSars()),
+  ]);
 }
 
-export function smokePopia(): SmokeResult {
-  const antiFindings = detect(ANTI);
-  const consentFindings = detect(CONSENT);
-
-  const flagged = [...antiFindings, ...consentFindings].map(f => f.file);
-  const expectations = {
-    antiFlagged: antiFindings.length > 0,
-    consentClean: consentFindings.length === 0
-  };
-
-  const reasons: string[] = [];
-  if (!expectations.antiFlagged) reasons.push('expected anti-pattern.ts to be flagged but it was not');
-  if (!expectations.consentClean) reasons.push('expected consent-flag.ts to be clean but it was flagged');
-
-  return {
-    ok: expectations.antiFlagged && expectations.consentClean,
-    flagged,
-    reasons
-  };
-}
-
-/* v8 ignore start — CLI entry, exercised end-to-end in Plan B */
+/* v8 ignore start — CLI entry */
 async function main() {
-  const result = smokePopia();
-  if (result.ok) {
-    console.log('POPIA smoke: OK');
-    process.exit(0);
+  const results = await runAllSmokes();
+  let failed = 0;
+  for (const r of results) {
+    if (r.ok) {
+      console.log(`${r.skill}: OK${r.skipped ? " (skipped)" : ""}`);
+    } else {
+      failed++;
+      console.error(`${r.skill}: FAIL`);
+      for (const reason of r.reasons) console.error(`  - ${reason}`);
+    }
   }
-  console.error('POPIA smoke: FAIL');
-  for (const r of result.reasons) console.error(`  - ${r}`);
-  process.exit(1);
+  process.exit(failed === 0 ? 0 : 1);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
