@@ -1,0 +1,19 @@
+flowchart LR
+  tag["git tag v*"]
+  ci["GH Action<br/>(release workflow)"]
+
+  tag --> ci
+
+  ci --> npm["npm publish<br/>sa-fintech-skills"]
+  ci --> ghrel["GH Release<br/>zipped dist/ per runtime"]
+  ci --> claude["Claude plugin marketplace<br/>(auto-PR)"]
+  ci --> gemini["Gemini extensions index<br/>(manifest URL pin)"]
+
+  npm --> cli["npx sa-fintech-skills install<br/>(Cursor/Copilot/Codex users)"]
+
+  classDef source fill:#e8f4ff,stroke:#1a4d80,color:#0a2540;
+  classDef ci fill:#fff4e0,stroke:#a05a00,color:#3d2200;
+  classDef target fill:#e8ffe8,stroke:#1a6b1a,color:#0a3d0a;
+  class tag source;
+  class ci ci;
+  class npm,ghrel,claude,gemini,cli target;

@@ -1,0 +1,21 @@
+flowchart TD
+  edit["1. Author edits<br/>skills/paystack/SKILL.md"]
+  lintci["2. CI: lint-skill.ts<br/>(frontmatter + budget)"]
+  smoke["3. CI: smoke-test.ts<br/>(Paystack/PayFast sandbox)"]
+  tag{"4. git tag v*?"}
+  buildci["5. CI: build.ts<br/>(fan out to dist/&lt;runtime&gt;/)"]
+  release["6. Release artefacts<br/>(GH Release + npm + plugin marketplace)"]
+  install["7. User installs<br/>per runtime"]
+  load["8. Agent loads skill<br/>(eager or on-trigger)"]
+  apply["9. User prompt triggers skill<br/>→ agent applies guidance"]
+
+  edit --> lintci --> smoke --> tag
+  tag -->|yes| buildci --> release --> install --> load --> apply
+  tag -->|no| done["wait for next push"]
+
+  classDef author fill:#e8f4ff,stroke:#1a4d80,color:#0a2540;
+  classDef ci fill:#fff4e0,stroke:#a05a00,color:#3d2200;
+  classDef user fill:#e8ffe8,stroke:#1a6b1a,color:#0a3d0a;
+  class edit author;
+  class lintci,smoke,buildci,release ci;
+  class install,load,apply user;

@@ -1,0 +1,19 @@
+flowchart LR
+  src["skills/&lt;name&gt;/SKILL.md<br/>(canonical source)"]
+  lint["lint-skill.ts<br/>(frontmatter + budget)"]
+  build["build.ts<br/>(per-runtime emitter)"]
+
+  src --> lint --> build
+
+  build --> claude["dist/claude/<br/>.claude-plugin/marketplace.json"]
+  build --> cursor["dist/cursor/<br/>.cursor/rules/*.mdc"]
+  build --> copilot["dist/copilot/<br/>.github/copilot-instructions.md"]
+  build --> codex["dist/codex/<br/>AGENTS.md"]
+  build --> gemini["dist/gemini/<br/>skills.json"]
+
+  classDef source fill:#e8f4ff,stroke:#1a4d80,color:#0a2540;
+  classDef tool fill:#fff4e0,stroke:#a05a00,color:#3d2200;
+  classDef target fill:#e8ffe8,stroke:#1a6b1a,color:#0a3d0a;
+  class src source;
+  class lint,build tool;
+  class claude,cursor,copilot,codex,gemini target;
