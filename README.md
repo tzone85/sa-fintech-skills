@@ -89,8 +89,8 @@ docs/                           spec, plan, diagrams
 
 | | |
 |---|---|
-| Design spec | [`docs/superpowers/specs/2026-06-07-sa-fintech-skills-design.md`](docs/superpowers/specs/2026-06-07-sa-fintech-skills-design.md) |
-| Plan A (Foundation) | [`docs/superpowers/plans/2026-06-07-sa-fintech-skills-foundation.md`](docs/superpowers/plans/2026-06-07-sa-fintech-skills-foundation.md) |
+| Design spec | [`docs/design.md`](docs/design.md) |
+| Plan A (Foundation) | [`docs/plan-foundation.md`](docs/plan-foundation.md) |
 | Diagrams | [`docs/diagrams/`](docs/diagrams/) — rendered SVG + mermaid sources |
 
 ## Security
