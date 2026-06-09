@@ -41,7 +41,7 @@ export function totalsForLines(lines: InvoiceLine[]): InvoiceTotals {
 /** Worked example from a typical SA SME invoice. */
 export function example(): InvoiceTotals {
   return totalsForLines([
-    { description: "Spring Skill Pack — Pro license", excl: 1000 },
+    { description: "Pro license", excl: 1000 },
     { description: "Setup / onboarding", excl: 250 },
   ]);
 }

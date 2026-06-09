@@ -66,9 +66,9 @@ npx sa-fintech-skills install
 
 Each skill ships with a `## Common mistakes` block listing the failures we keep seeing in agent output — so the agent learns the boundary, not just the happy path.
 
-## Why MIT, why open source
+## Why MIT
 
-This pack is free credibility infrastructure for the SA dev community. If you ship something useful built on top of it, the right thing to do is link back or contribute a skill. Paid siblings (Spring Boot, Next.js + AI) live separately.
+SA fintech docs are scattered, often inconsistent, and rarely make it into AI training data in any useful form. A permissively-licensed canonical reference removes that friction for the whole local dev community. If you ship something on top of it, contributing a skill or filing an issue is the way to pay it forward.
 
 ## Layout
 

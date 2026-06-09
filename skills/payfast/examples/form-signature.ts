@@ -65,15 +65,17 @@ export type PayFastForm = Partial<Record<PayFastField, string | number>>;
  * keys but standard urlencode (spaces → "+") for values; we match that.
  */
 export function phpUrlEncode(value: string): string {
-  return encodeURIComponent(value)
-    .replace(/%20/g, "+")
-    // PHP urlencode also leaves these characters un-encoded vs. JS:
-    .replace(/!/g, "%21")
-    .replace(/'/g, "%27")
-    .replace(/\(/g, "%28")
-    .replace(/\)/g, "%29")
-    .replace(/\*/g, "%2A")
-    .replace(/~/g, "%7E");
+  return (
+    encodeURIComponent(value)
+      .replace(/%20/g, "+")
+      // PHP urlencode also leaves these characters un-encoded vs. JS:
+      .replace(/!/g, "%21")
+      .replace(/'/g, "%27")
+      .replace(/\(/g, "%28")
+      .replace(/\)/g, "%29")
+      .replace(/\*/g, "%2A")
+      .replace(/~/g, "%7E")
+  );
 }
 
 function buildSignatureString(form: PayFastForm): string {
@@ -121,7 +123,7 @@ export function exampleSignedForm(): PayFastForm & { signature: string } {
     email_address: "thandi@example.co.za",
     m_payment_id: "ord-123",
     amount: "150.00",
-    item_name: "Spring Skill Pack",
+    item_name: "Pro license",
   };
   const signature = generateFormSignature(form, { passphrase: "jt7NOE43FZPn" });
   return { ...form, signature };
