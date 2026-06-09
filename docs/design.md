@@ -11,7 +11,7 @@
 
 AI training data is thin on SA-specific fintech APIs, so agents hallucinate PayFast signature schemes, miss POPIA consent flags, and invent SARS field codes. A curated, version-pinned skill pack becomes the canonical reference for any agent (Claude Code, Cursor, Copilot, Codex, Gemini) touching ZA payment or compliance code.
 
-Wedge: zero existing coverage, real domain expertise (Sanlam + indie fintech work), small but unserved market. Funnels to paid Spring Pack and Next.js AI Pack — credibility + SEO play.
+Wedge: zero existing coverage, real domain expertise (Sanlam + indie fintech work), small but unserved market.
 
 ---
 
@@ -223,13 +223,9 @@ npx sa-fintech-skills doctor                # version + drift check
 
 GitHub topics: `claude-code`, `cursor`, `copilot`, `agent-skills`, `paystack`, `payfast`, `popia`, `south-africa`, `fintech`.
 
-README opens with one-line install per runtime + 30-second video of an agent writing a Paystack webhook verifier correctly on first try. Cross-link from `spring-skill-pack` and `nextjs-ai-skill-pack` READMEs.
+README opens with one-line install per runtime + 30-second video of an agent writing a Paystack webhook verifier correctly on first try.
 
-### 7.5 Funnel
-
-Free pack establishes credibility + SEO for "AI agent + SA fintech" intent. Paid packs link in as use-case examples. Future paid sibling `sa-fintech-pro` covers production-hardening (idempotency, reconciliation, settlement) behind paywall.
-
-### 7.6 Maintenance cadence
+### 7.5 Maintenance cadence
 
 | Cadence | Job |
 |---|---|
