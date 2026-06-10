@@ -31,12 +31,17 @@
   "engines": {
     "node": ">=22"
   },
+  "bin": {
+    "sa-fintech-skills": "bin/cli.mjs"
+  },
   "files": [
+    "bin/",
     "scripts/",
     "skills/",
     "dist/",
     "README.md",
     "LICENSE",
+    "CHANGELOG.md",
     "CONTRIBUTING.md"
   ],
   "scripts": {
@@ -48,7 +53,9 @@
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm run lint:skills && npm test && npm run build && npm run smoke",
     "goldens:update": "tsx scripts/regen-goldens.ts",
-    "prepack": "npm run build"
+    "audit:high": "npm audit --audit-level=high",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run verify"
   },
   "dependencies": {
     "gpt-tokenizer": "^2.5.0",
