@@ -1,0 +1,89 @@
+name: Nightly drift
+
+# Catches the world changing under us while the repo is quiet:
+#   - npm dependency vulnerabilities published after the last CI run
+#   - skill examples breaking against live sandbox APIs (Paystack init runs
+#     live when the PAYSTACK_TEST_SECRET_KEY secret is configured)
+#   - toolchain rot (fresh `npm ci` on a clean runner every night)
+#
+# On failure it opens (or comments on) a single `drift`-labelled issue rather
+# than failing silently. Manually testable any time via workflow_dispatch.
+#
+# NOTE: GitHub only fires `schedule` triggers from the default branch, so this
+# cron is armed once the file lands on main. Scheduled workflows on repos with
+# no activity for 60 days are auto-disabled — the monthly release cadence (or
+# any commit) keeps it alive.
+
+on:
+  schedule:
+    - cron: "30 3 * * *" # daily 03:30 UTC = 05:30 SAST
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: nightly-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863 # v2.12.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies (high+)
+        run: npm run audit:high
+
+      - name: Full verify (typecheck + lint + test + build + smoke)
+        env:
+          # Optional repo secret; when present the Paystack smoke hits the
+          # live test-mode init endpoint instead of fixtures only.
+          PAYSTACK_TEST_SECRET_KEY: ${{ secrets.PAYSTACK_TEST_SECRET_KEY }}
+        run: npm run verify
+
+      - name: File or update drift issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh label create drift --repo "$REPO" \
+            --description "Nightly drift check failure" \
+            --color D93F0B --force
+          EXISTING=$(gh issue list --repo "$REPO" --label drift --state open \
+            --json number --jq '.[0].number // empty')
+          BODY="Nightly drift run failed: ${RUN_URL}
+
+          Likely causes: new dependency advisory, live sandbox API change, or toolchain rot. See run logs for the failing step."
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY"
+          else
+            gh issue create --repo "$REPO" \
+              --title "Nightly drift check failing" \
+              --label drift \
+              --body "$BODY"
+          fi
