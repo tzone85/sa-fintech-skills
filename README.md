@@ -37,13 +37,13 @@ Five emitters, one source of truth. Add a runtime, the rest stay in sync. Add a 
 | | |
 |---|---|
 | Spec | approved 2026-06-07 |
-| Phase | Plan B (v0.1.0) — ready to ship |
+| Phase | v0.1.0 — production ready, awaiting first npm publish |
 | Skills | `paystack` (HMAC-SHA-512 webhook verify, ZAR init, splits) · `payfast` (form-post MD5 sig in documented order, ITN four-step validation) · `popia` (PII + consent + DSAR) · `sars-efiling` (15% VAT, IRP5 source codes, ITR12 fields) |
 | Primitives | `validate-sa-id` (Luhn + DOB + citizenship) · `vat` (banker's rounding) · `bank-codes` (format validator + extensible PASA registry) |
-| Distribution | npm publish workflow with OIDC provenance · plugin marketplace auto-PR (guarded until Anthropic registry stable) |
-| Audit | 0 vulnerabilities · 78 tests · CodeQL + Scorecard + branch protection |
+| Distribution | `npx sa-fintech-skills install` CLI (`bin/cli.mjs`) · npm publish workflow with OIDC provenance · plugin marketplace auto-PR (guarded until Anthropic registry stable) |
+| Audit | 0 vulnerabilities · 85 tests · CodeQL + Scorecard + nightly drift cron + branch protection |
 
-Implementation is happening in `main`; commit history shows the TDD progression. Once Plan A finishes you can manually copy `dist/<runtime>/` into your project for any of the 5 runtimes.
+Until the npm publish lands you can manually copy `dist/<runtime>/` (after `npm run build`) into your project for any of the 5 runtimes.
 
 ## Install (after v0.1.0 ships)
 
@@ -75,15 +75,21 @@ SA fintech docs are scattered, often inconsistent, and rarely make it into AI tr
 ```
 skills/<name>/SKILL.md          canonical source
 skills/<name>/examples/         runnable TS snippets
-shared/za-primitives/           SA ID validate, VAT calc, bank codes (Plan B)
+shared/za-primitives/           SA ID validate, VAT calc, bank codes
+bin/cli.mjs                     npx entry point (dependency-free)
 scripts/lib/                    parse-skill, token-budget, runtime-config
 scripts/emitters/               one file per runtime
 scripts/lint-skill.ts           CLI validator
-scripts/build.ts                CLI orchestrator (Plan A T11)
+scripts/build.ts                CLI orchestrator
+scripts/smoke/                  per-skill smoke checks (fixtures + live)
 dist/<runtime>/                 generated, gitignored
 tests/golden/<runtime>/         emitter output snapshots (contracts)
-docs/                           spec, plan, diagrams
+docs/                           spec, plan, diagrams, Obsidian vault
 ```
+
+## Operations
+
+Three scheduled GitHub Actions keep the pack honest while the repo is quiet — a daily **nightly drift** run (fresh `npm ci`, dependency audit, full verify incl. live Paystack sandbox smoke when `PAYSTACK_TEST_SECRET_KEY` is set; failures auto-file a `drift`-labelled issue) plus weekly CodeQL and Scorecard. The full runbook, including what to do when drift fires, lives in the [Operations Runbook](docs/obsidian/Operations%20Runbook.md).
 
 ## Docs
 
@@ -92,6 +98,8 @@ docs/                           spec, plan, diagrams
 | Design spec | [`docs/design.md`](docs/design.md) |
 | Plan A (Foundation) | [`docs/plan-foundation.md`](docs/plan-foundation.md) |
 | Diagrams | [`docs/diagrams/`](docs/diagrams/) — rendered SVG + mermaid sources |
+| Obsidian vault | [`docs/obsidian/`](docs/obsidian/) — open as a vault, start at `Home.md`; overview, architecture, per-skill notes, ops runbook, launch checklist |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
 
 ## Security
 
