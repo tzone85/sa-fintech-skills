@@ -38,6 +38,7 @@
     "bin/",
     "scripts/",
     "skills/",
+    "shared/",
     "dist/",
     "README.md",
     "LICENSE",
