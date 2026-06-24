@@ -6,4 +6,7 @@ dist/
 .env.local
 coverage/
 tmp-install-test/
+tmp-cli-test/
 .firecrawl/
+# Obsidian per-machine workspace state (docs/obsidian is the shared vault)
+.obsidian/
